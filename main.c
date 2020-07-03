@@ -8,7 +8,8 @@ typedef enum{
     ENEMY, WEAPON,
     DEATHENEMY, GDEATHENEMY,
     PRISON,EXIT,
-    GUNS
+    GUNS, HEAL,
+    HEALED
 } squareKind;
 
 typedef enum{
@@ -18,7 +19,7 @@ typedef enum{
 } modeKind;
 
 typedef struct{
-    int enemy[3][2];
+    int enemy[3][3];
     int chara;
     squareKind map[7][7];
 }cave;    
@@ -38,9 +39,9 @@ void move2Prison();
 int m[7][7];
 int moveChara();
 int makeEnemy();
-int battleScene(int);
+int battleScene(int, int);
 int stack;
-int c; // moveCharaの文字取得
+char c; // moveCharaの文字取得
 
 cave d;
 chara ch = {30, 0, 0, 0};
@@ -67,15 +68,18 @@ int main(int argc, char *argv[]){
 
     m[1][5] = PRISON; m[3][4] = EXIT;  m[1][1] = ENEMY;
     m[3][2] = ENEMY;  m[5][5] = ENEMY; m[2][4] = WEAPON;
-    m[2][1] = GUNS;
+    m[2][1] = GUNS;   m[5][1] = HEAL;
 
     d.enemy[0][0] = 30+r;
     d.enemy[0][1] = 11;
+    d.enemy[0][2] = 1;
     r = rand()%60;
     d.enemy[1][0] = 30+r;
     d.enemy[1][1] = 32;
+    d.enemy[1][2] = 0;
     d.enemy[2][0] = 30;
     d.enemy[2][1] = 55;
+    d.enemy[2][2] = 0;
 
     p(d.map);
     while(1){
@@ -101,6 +105,7 @@ void p(squareKind map[][7]){
             else if(map[i][j] == EMPTY)  printf("%c", ' ');
             else if(map[i][j] == ENEMY)  printf("%c", 'E');
             else if(map[i][j] == DEATHENEMY)  printf("%c", 'X');
+            else if(map[i][j] == HEALED)  printf("%c", '+');
         }
         printf("\n");
     }
@@ -113,7 +118,7 @@ int checkError(){
 
 
 int moveChara(){
-    scanf("%lc%*c", &c);
+    scanf("%c%*c", &c);
     fflush(stdin);
     if(c == 'q') quitGame();
     if(c == 'r') p(d.map);
@@ -134,10 +139,10 @@ int moveChara(){
         d.chara -= mover;
         return -1;
     }else{
-        if (m[d.chara/10][d.chara%10] == WEAPON || m[d.chara/10][d.chara%10] == GUNS ){
-            m[d.chara/10][d.chara%10] = EMPTY;
+        /*if (m[d.chara/10][d.chara%10] == WEAPON || m[d.chara/10][d.chara%10] == GUNS ){
+            m[d.stack/10][d.stack%10] = EMPTY;
             d.map[d.chara/10][d.chara%10] = EMPTY;
-        }
+        }*/
         d.map[stack/10][stack%10] = m[stack/10][stack%10];
     }
         
@@ -147,6 +152,7 @@ int moveChara(){
 
 void checkSquare(){
     int mover = 0;
+    char c;
 
     d.chara += mover;
     if (m[d.chara/10][d.chara%10] == WEAPON){
@@ -170,7 +176,7 @@ void checkSquare(){
         else{
             if(d.enemy[(d.chara%10)/2] = battleScene(d.enemy[(d.chara%10)/2]) == 0) m[d.chara/10][d.chara%10] = DEATHENEMY;
         }*/
-        int cc = battleScene(d.enemy[(d.chara%10)/2][0]);
+        int cc = battleScene(d.enemy[(d.chara%10)/2][0], (d.chara%10)/2);
         d.enemy[(d.chara%10)/2][0] = cc;
         if(cc == 0){
             m[d.chara/10][d.chara%10] = DEATHENEMY;
@@ -184,28 +190,48 @@ void checkSquare(){
     else if(m[d.chara/10][d.chara%10] == GDEATHENEMY){
         printf("頭から中身がこぼれている…吐き気を催したが、こらえた。\n");
     }
-    d.map[stack/10][stack%10] = m[stack/10][stack%10];
+    else if(m[d.chara/10][d.chara%10] == EXIT){
+        if(ch.key == 1){
+            printf("鍵がピタリと合った。このまま脱出しますか？\n");
+            printf("y/n >\n");
+            scanf("%c", &c);
+            if(c == 'y') printf("GAMECLEAR!\n");
+        }else{
+            printf("厚そうな鉄扉だ。鍵がないと開かないみたい\n");
+        }
+
+    }
+    else if(m[d.chara/10][d.chara%10] == HEAL){
+        ch.hp += 30;
+        printf("盗賊たちの食料庫だろうか…\n食べられそうな干し肉を食べた。\n");
+        m[d.chara/10][d.chara%10] = HEALED;
+    }
+    else if(m[d.chara/10][d.chara%10] == HEALED){
+        printf("おなかがいっぱいだ\n");
+    }
+    //d.map[stack/10][stack%10] = m[stack/10][stack%10];
 }
 
 void quitGame(){
     printf("本当に終了しますか?..y/n\n");
-    scanf("%lc%*c", &c);
+    scanf("%c%*c", &c);
     if(c == 'y' || c == 'Y'){
         exit(EXIT_SUCCESS);
     }
 }
 
-int battleScene(int e){
+int battleScene(int e, int t){
     printf("=============================\n");
     printf("盗賊を見つけた。\n");
     int f = 0;
+    char  c;
 
 
     // 自分の攻撃
     if(ch.weapon == HAVEWEAPON){
         printf("ナイフもあるし、今なら戦えそう\n");
         printf("戦う e/なにもしない q >");
-        scanf("%lc%*c", &c);
+        scanf("%c%*c", &c);
         if(c == 'e'){
             e -= 15;
             if (e > 0)
@@ -215,7 +241,7 @@ int battleScene(int e){
     }else if(ch.weapon == NOWEAPON){
         printf("丸腰だと勝てそうにない…けど…\n");
         printf("戦う e/なにもしない q >");
-        scanf("%lc%*c", &c);
+        scanf("%c%*c", &c);
         //printf("%d\n", d.enemy[0]);
         if(c == 'e'){
             e -= 5;
@@ -229,7 +255,7 @@ int battleScene(int e){
     }else if(ch.weapon == GUN || ch.weapon == FULL){
         printf("こちらに気が付いていない。盗賊の頭に狙いを定めた。\n");
         printf("引き金を引く e/なにもしない q >");
-        scanf("%lc%*c", &c);
+        scanf("%c%*c", &c);
         if(c == 'e'){
             e = 0;
             printf("銃弾は脳天を貫き、盗賊は倒れた\n");
@@ -257,6 +283,10 @@ int battleScene(int e){
     if (e <= 0){
         e = 0; //0下回った時の処理
         printf("盗賊は倒れた。手に嫌な感触が残った\n");
+        if(d.enemy[t][2] == 1){
+        //printf("盗賊は倒れた。手に嫌な感触が残った\n");
+            ch.key = 1;
+        }
     }
 
     printf("キャラのHP: %d\n",ch.hp);
